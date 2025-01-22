@@ -3,25 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-mint: #63bca5;
+  --color-charcoal: #333333;
+  --color-cool-gray: #f5f5f5;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-white text-[#333333];
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+.font-montserrat {
+  font-family: var(--font-montserrat), sans-serif;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.font-inter {
+  font-family: var(--font-inter), sans-serif;
 }
+
