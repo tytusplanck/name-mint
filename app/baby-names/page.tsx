@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import Link from 'next/link';
+import { generateBabyNames } from '../actions';
 
 export default function BabyNamesPage() {
   const [gender, setGender] = useState<string>('neutral');
@@ -19,13 +20,18 @@ export default function BabyNamesPage() {
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/generate-names', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gender, style, length, count }),
+      const result = await generateBabyNames({
+        gender: gender as 'boy' | 'girl' | 'neutral',
+        style: style ? [style] : [],
+        count: count,
+        syllables: Math.ceil(length / 3), // Rough approximation of syllables from length
       });
-      const data = await response.json();
-      setNames(data.names);
+
+      if (result.success && result.data) {
+        setNames(result.data);
+      } else {
+        console.error('Failed to generate names:', result.error);
+      }
     } catch (error) {
       console.error('Failed to generate names:', error);
     } finally {
