@@ -1,14 +1,34 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useEffect, useState } from 'react';
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    async function checkAuth() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    }
+    checkAuth();
+  }, [supabase]);
 
   // Hide header on auth pages
   if (pathname.startsWith('/auth/')) {
     return null;
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push('/auth/login');
   }
 
   return (
@@ -20,6 +40,23 @@ export function Header() {
         >
           NameMint
         </Link>
+
+        {isLoggedIn && (
+          <div className="flex items-center space-x-4">
+            <Link
+              href="/profile"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Profile
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

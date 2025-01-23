@@ -1,25 +1,32 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { NextRequest, NextResponse } from 'next/server';
+import { openai } from '@/lib/openai';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { gender, style, length, count, currentUsage, popularity } =
-      await req.json();
+    const supabase = createRouteHandlerClient({ cookies });
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    // Check if user has exceeded free limit
-    if (currentUsage >= 3) {
-      return NextResponse.json(
-        {
-          error:
-            'Free usage limit exceeded. Please purchase credits to continue.',
-        },
-        { status: 403 }
+    let freeUsageCount = 0;
+    // Check free usage for unauthenticated users
+    if (!session) {
+      freeUsageCount = parseInt(
+        req.cookies.get('name_generator_usage')?.value || '0'
       );
+      if (freeUsageCount >= 3) {
+        return NextResponse.json(
+          { error: 'Please create an account to continue generating names.' },
+          { status: 401 }
+        );
+      }
     }
+
+    const { gender, style, length, count, popularity } = await req.json();
 
     const popularityPrompt =
       popularity === 100
@@ -58,9 +65,18 @@ export async function POST(req: NextRequest) {
     const generatedNames =
       completion.choices[0].message.content?.trim().split('\n') || [];
 
+    // For unauthenticated users, update the cookie
+    if (!session) {
+      const response = NextResponse.json({ names: generatedNames });
+      response.cookies.set(
+        'name_generator_usage',
+        (freeUsageCount + 1).toString()
+      );
+      return response;
+    }
+
     return NextResponse.json({
       names: generatedNames,
-      remainingUsage: 3 - (currentUsage + 1),
     });
   } catch (error) {
     console.error('Error generating names:', error);

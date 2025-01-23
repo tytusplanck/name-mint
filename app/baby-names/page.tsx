@@ -7,7 +7,29 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import Link from 'next/link';
-import { getUsageCount, incrementUsage, getRemainingUsage } from '@/lib/usage';
+import { getUserCredits, decrementCredits } from '@/lib/credits';
+
+const PremiumFeatureOverlay = ({ children }: { children: React.ReactNode }) => (
+  <div className="relative">
+    {children}
+    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] rounded-lg flex items-center justify-center">
+      <div className="text-center p-4 bg-white/80 rounded-xl shadow-lg border border-[#63BCA5]/20">
+        <div className="bg-[#63BCA5]/10 rounded-full p-3 w-fit mx-auto mb-3">
+          <span className="text-2xl">✨</span>
+        </div>
+        <h3 className="font-semibold text-lg mb-2">Premium Features</h3>
+        <p className="text-sm text-gray-600 mb-3">
+          Unlock advanced name customization with style and length controls!
+        </p>
+        <Link href="/auth/signup">
+          <Button className="bg-[#63BCA5] hover:bg-[#52AB94]">
+            Get Started
+          </Button>
+        </Link>
+      </div>
+    </div>
+  </div>
+);
 
 export default function BabyNamesPage() {
   const [gender, setGender] = useState<string>('neutral');
@@ -17,10 +39,19 @@ export default function BabyNamesPage() {
   const [popularity, setPopularity] = useState<number>(50);
   const [loading, setLoading] = useState<boolean>(false);
   const [names, setNames] = useState<string[]>([]);
-  const [remainingUsage, setRemainingUsage] = useState<number>(3);
+  const [remainingCredits, setRemainingCredits] = useState<number>(0);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoadingCredits, setIsLoadingCredits] = useState<boolean>(true);
 
   useEffect(() => {
-    setRemainingUsage(getRemainingUsage());
+    const fetchCredits = async () => {
+      setIsLoadingCredits(true);
+      const { credits, isAuthenticated: isAuth } = await getUserCredits();
+      setRemainingCredits(credits);
+      setIsAuthenticated(isAuth);
+      setIsLoadingCredits(false);
+    };
+    fetchCredits();
   }, []);
 
   const getPopularityLabel = (value: number) => {
@@ -48,10 +79,20 @@ export default function BabyNamesPage() {
   };
 
   const handleGenerate = async () => {
-    if (getUsageCount() >= 3) {
-      alert(
-        'You have reached your free usage limit. Please purchase credits to continue.'
-      );
+    if (remainingCredits <= 0) {
+      if (!isAuthenticated) {
+        if (
+          confirm(
+            'Create an account to get more credits. Would you like to sign up now?'
+          )
+        ) {
+          window.location.href = '/auth/signup';
+        }
+      } else {
+        alert(
+          'You have no credits remaining. Please purchase more credits to continue.'
+        );
+      }
       return;
     }
 
@@ -68,7 +109,6 @@ export default function BabyNamesPage() {
           length: getLengthValue(length),
           count,
           popularity,
-          currentUsage: getUsageCount(),
         }),
       });
 
@@ -76,11 +116,23 @@ export default function BabyNamesPage() {
 
       if (response.ok) {
         setNames(data.names);
-        incrementUsage();
-        setRemainingUsage(getRemainingUsage());
+        const success = await decrementCredits();
+        if (success) {
+          setRemainingCredits((prev) => Math.max(0, prev - 1));
+        }
       } else {
-        console.error('Failed to generate names:', data.error);
-        alert(data.error);
+        if (response.status === 401) {
+          if (
+            confirm(
+              'Please create an account to continue generating names. Would you like to sign up now?'
+            )
+          ) {
+            window.location.href = '/auth/signup';
+          }
+        } else {
+          console.error('Failed to generate names:', data.error);
+          alert(data.error);
+        }
       }
     } catch (error) {
       console.error('Failed to generate names:', error);
@@ -90,88 +142,67 @@ export default function BabyNamesPage() {
     }
   };
 
+  const showPremiumOverlay =
+    !isLoadingCredits && (!isAuthenticated || remainingCredits <= 1);
+
   return (
-    <main className="mx-auto max-w-4xl p-6 bg-white min-h-screen">
+    <main className="mx-auto max-w-4xl p-8 bg-white min-h-screen space-y-8">
       <Link href="/">
-        <Button variant="ghost" className="mb-4">
-          ← Back to Home
-        </Button>
+        <Button variant="ghost">← Back to Home</Button>
       </Link>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center">
         <h1 className="text-4xl font-bold font-montserrat text-[#333333]">
           Generate Baby Names
         </h1>
-        <div className="text-sm text-gray-600">
-          {remainingUsage > 0 ? (
-            <span>{remainingUsage} free generations remaining</span>
-          ) : (
-            <span className="text-red-600">Free limit reached</span>
+        <div className="flex flex-col items-end gap-2">
+          <div className="text-sm text-gray-600">
+            {isLoadingCredits ? (
+              <span>Loading...</span>
+            ) : remainingCredits > 0 ? (
+              <span>
+                {remainingCredits} free generation
+                {remainingCredits !== 1 ? 's' : ''} remaining
+              </span>
+            ) : (
+              <span className="text-red-600">No generations remaining</span>
+            )}
+          </div>
+          {!isLoadingCredits && !isAuthenticated && (
+            <Link
+              href="/auth/signup"
+              className="text-xs text-[#63BCA5] hover:text-[#52AB94]"
+            >
+              Create account for more credits →
+            </Link>
           )}
         </div>
       </div>
 
-      <form className="space-y-6 mb-8">
-        <div>
-          <Label className="text-lg font-semibold mb-2 block">Gender</Label>
+      <form className="space-y-8">
+        <div className="space-y-4">
+          <Label className="text-lg font-semibold block">Gender</Label>
           <RadioGroup
             value={gender}
             onValueChange={setGender}
-            className="flex space-x-4"
+            className="flex gap-6"
           >
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <RadioGroupItem value="boy" id="boy" />
               <Label htmlFor="boy">Boy</Label>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <RadioGroupItem value="girl" id="girl" />
               <Label htmlFor="girl">Girl</Label>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <RadioGroupItem value="neutral" id="neutral" />
               <Label htmlFor="neutral">Neutral</Label>
             </div>
           </RadioGroup>
         </div>
 
-        <div>
-          <Label htmlFor="style" className="text-lg font-semibold mb-2 block">
-            Name Style
-          </Label>
-          <Input
-            id="style"
-            placeholder="e.g., Modern, Classic, Unique"
-            value={style}
-            onChange={(e) => setStyle(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="length" className="text-lg font-semibold mb-2 block">
-            Name Length: {getLengthLabel(length)}
-          </Label>
-          <Slider
-            id="length"
-            min={0}
-            max={100}
-            step={25}
-            value={[length]}
-            onValueChange={(value) => setLength(value[0])}
-            className="max-w-xs"
-          />
-          <div className="flex justify-between text-sm text-gray-500 mt-1 max-w-xs">
-            <span>🐣</span>
-            <span>🌱</span>
-            <span>🌿</span>
-            <span>🌳</span>
-            <span>🌲</span>
-          </div>
-        </div>
-
-        <div>
-          <Label
-            htmlFor="popularity"
-            className="text-lg font-semibold mb-2 block"
-          >
+        <div className="space-y-4">
+          <Label htmlFor="popularity" className="text-lg font-semibold block">
             Popularity: {getPopularityLabel(popularity)}
           </Label>
           <Slider
@@ -183,7 +214,7 @@ export default function BabyNamesPage() {
             onValueChange={(value) => setPopularity(value[0])}
             className="max-w-xs"
           />
-          <div className="flex justify-between text-sm text-gray-500 mt-1 max-w-xs">
+          <div className="flex justify-between text-sm text-gray-500 max-w-xs">
             <span>🦄</span>
             <span>⭐</span>
             <span>🎯</span>
@@ -192,8 +223,8 @@ export default function BabyNamesPage() {
           </div>
         </div>
 
-        <div>
-          <Label htmlFor="count" className="text-lg font-semibold mb-2 block">
+        <div className="space-y-4">
+          <Label htmlFor="count" className="text-lg font-semibold block">
             Number of Names: {count}
           </Label>
           <Slider
@@ -207,10 +238,137 @@ export default function BabyNamesPage() {
           />
         </div>
 
+        <div className="pt-8 border-t space-y-8">
+          <h2 className="text-xl font-semibold text-[#333333]">
+            Advanced Customization
+          </h2>
+          {isLoadingCredits ? (
+            <div className="space-y-8 opacity-50">
+              <div className="space-y-4">
+                <Label htmlFor="style" className="text-lg font-semibold block">
+                  Name Style
+                </Label>
+                <Input
+                  id="style"
+                  placeholder="e.g., Modern, Classic, Unique"
+                  value={style}
+                  onChange={(e) => setStyle(e.target.value)}
+                  disabled
+                />
+              </div>
+
+              <div className="space-y-4">
+                <Label htmlFor="length" className="text-lg font-semibold block">
+                  Name Length: {getLengthLabel(length)}
+                </Label>
+                <Slider
+                  id="length"
+                  min={0}
+                  max={100}
+                  step={25}
+                  value={[length]}
+                  onValueChange={(value) => setLength(value[0])}
+                  className="max-w-xs"
+                  disabled
+                />
+                <div className="flex justify-between text-sm text-gray-500 max-w-xs">
+                  <span>🐣</span>
+                  <span>🌱</span>
+                  <span>🌿</span>
+                  <span>🌳</span>
+                  <span>🌲</span>
+                </div>
+              </div>
+            </div>
+          ) : showPremiumOverlay ? (
+            <PremiumFeatureOverlay>
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <Label
+                    htmlFor="style"
+                    className="text-lg font-semibold block"
+                  >
+                    Name Style
+                  </Label>
+                  <Input
+                    id="style"
+                    placeholder="e.g., Modern, Classic, Unique"
+                    value={style}
+                    onChange={(e) => setStyle(e.target.value)}
+                    disabled
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <Label
+                    htmlFor="length"
+                    className="text-lg font-semibold block"
+                  >
+                    Name Length: {getLengthLabel(length)}
+                  </Label>
+                  <Slider
+                    id="length"
+                    min={0}
+                    max={100}
+                    step={25}
+                    value={[length]}
+                    onValueChange={(value) => setLength(value[0])}
+                    className="max-w-xs"
+                    disabled
+                  />
+                  <div className="flex justify-between text-sm text-gray-500 max-w-xs">
+                    <span>🐣</span>
+                    <span>🌱</span>
+                    <span>🌿</span>
+                    <span>🌳</span>
+                    <span>🌲</span>
+                  </div>
+                </div>
+              </div>
+            </PremiumFeatureOverlay>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <Label htmlFor="style" className="text-lg font-semibold block">
+                  Name Style
+                </Label>
+                <Input
+                  id="style"
+                  placeholder="e.g., Modern, Classic, Unique"
+                  value={style}
+                  onChange={(e) => setStyle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <Label htmlFor="length" className="text-lg font-semibold block">
+                  Name Length: {getLengthLabel(length)}
+                </Label>
+                <Slider
+                  id="length"
+                  min={0}
+                  max={100}
+                  step={25}
+                  value={[length]}
+                  onValueChange={(value) => setLength(value[0])}
+                  className="max-w-xs"
+                />
+                <div className="flex justify-between text-sm text-gray-500 max-w-xs">
+                  <span>🐣</span>
+                  <span>🌱</span>
+                  <span>🌿</span>
+                  <span>🌳</span>
+                  <span>🌲</span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
         <Button
           type="button"
           onClick={handleGenerate}
-          className="bg-[#63BCA5] text-white font-inter py-3 px-6 text-lg hover:bg-[#52AB94] transition-colors"
+          className="bg-[#63BCA5] text-white font-inter py-3 px-6 text-lg hover:bg-[#52AB94] transition-colors mt-8"
           disabled={loading}
         >
           {loading ? 'Generating...' : 'Generate Names'}
@@ -218,11 +376,11 @@ export default function BabyNamesPage() {
       </form>
 
       {names.length > 0 && (
-        <section>
-          <h2 className="text-2xl font-semibold font-montserrat text-[#333333] mb-4">
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold font-montserrat text-[#333333]">
             Generated Names
           </h2>
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {names.map((name, index) => (
               <li key={index} className="text-lg font-inter">
                 {name}
