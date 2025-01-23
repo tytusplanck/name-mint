@@ -1,4 +1,5 @@
 import './globals.css';
+import { Analytics } from '@vercel/analytics/react';
 import { Inter, Montserrat } from 'next/font/google';
 import { Header } from '@/components/header';
 
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${montserrat.variable} font-sans`}>
         <Header />
         {children}
+        <Analytics />
       </body>
     </html>
   );
