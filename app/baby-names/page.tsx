@@ -146,15 +146,17 @@ export default function BabyNamesPage() {
     !isLoadingCredits && (!isAuthenticated || remainingCredits <= 1);
 
   return (
-    <main className="mx-auto max-w-4xl p-8 bg-white min-h-screen space-y-8">
+    <main className="mx-auto max-w-4xl p-4 sm:p-8 bg-white min-h-screen space-y-6 sm:space-y-8">
       <Link href="/">
-        <Button variant="ghost">← Back to Home</Button>
+        <Button variant="ghost" className="text-sm sm:text-base">
+          ← Back to Home
+        </Button>
       </Link>
-      <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-bold font-montserrat text-[#333333]">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-3xl sm:text-4xl font-bold font-montserrat text-[#333333]">
           Generate Baby Names
         </h1>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-start sm:items-end gap-2">
           <div className="text-sm text-gray-600">
             {isLoadingCredits ? (
               <span>Loading...</span>
@@ -178,13 +180,15 @@ export default function BabyNamesPage() {
         </div>
       </div>
 
-      <form className="space-y-8">
-        <div className="space-y-4">
-          <Label className="text-lg font-semibold block">Gender</Label>
+      <form className="space-y-6 sm:space-y-8">
+        <div className="space-y-3 sm:space-y-4">
+          <Label className="text-base sm:text-lg font-semibold block">
+            Gender
+          </Label>
           <RadioGroup
             value={gender}
             onValueChange={setGender}
-            className="flex gap-6"
+            className="flex flex-wrap gap-4 sm:gap-6"
           >
             <div className="flex items-center gap-2">
               <RadioGroupItem value="boy" id="boy" />
@@ -201,8 +205,11 @@ export default function BabyNamesPage() {
           </RadioGroup>
         </div>
 
-        <div className="space-y-4">
-          <Label htmlFor="popularity" className="text-lg font-semibold block">
+        <div className="space-y-3 sm:space-y-4">
+          <Label
+            htmlFor="popularity"
+            className="text-base sm:text-lg font-semibold block"
+          >
             Popularity: {getPopularityLabel(popularity)}
           </Label>
           <Slider
@@ -212,7 +219,7 @@ export default function BabyNamesPage() {
             step={25}
             value={[popularity]}
             onValueChange={(value) => setPopularity(value[0])}
-            className="max-w-xs"
+            className="w-full max-w-xs"
           />
           <div className="flex justify-between text-sm text-gray-500 max-w-xs">
             <span>🦄</span>
@@ -223,8 +230,11 @@ export default function BabyNamesPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <Label htmlFor="count" className="text-lg font-semibold block">
+        <div className="space-y-3 sm:space-y-4">
+          <Label
+            htmlFor="count"
+            className="text-base sm:text-lg font-semibold block"
+          >
             Number of Names: {count}
           </Label>
           <Slider
@@ -234,7 +244,7 @@ export default function BabyNamesPage() {
             step={1}
             value={[count]}
             onValueChange={(value) => setCount(value[0])}
-            className="max-w-xs"
+            className="w-full max-w-xs"
           />
         </div>
 
