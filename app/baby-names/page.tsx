@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import Link from 'next/link';
-import { generateBabyNames } from '../actions';
+import { getUsageCount, incrementUsage, getRemainingUsage } from '@/lib/usage';
 
 export default function BabyNamesPage() {
   const [gender, setGender] = useState<string>('neutral');
@@ -16,24 +16,49 @@ export default function BabyNamesPage() {
   const [count, setCount] = useState<number>(5);
   const [loading, setLoading] = useState<boolean>(false);
   const [names, setNames] = useState<string[]>([]);
+  const [remainingUsage, setRemainingUsage] = useState<number>(3);
+
+  useEffect(() => {
+    setRemainingUsage(getRemainingUsage());
+  }, []);
 
   const handleGenerate = async () => {
+    if (getUsageCount() >= 3) {
+      alert(
+        'You have reached your free usage limit. Please purchase credits to continue.'
+      );
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await generateBabyNames({
-        gender: gender as 'boy' | 'girl' | 'neutral',
-        style: style ? [style] : [],
-        count: count,
-        syllables: Math.ceil(length / 3), // Rough approximation of syllables from length
+      const response = await fetch('/api/generate-names', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gender,
+          style,
+          length,
+          count,
+          currentUsage: getUsageCount(),
+        }),
       });
 
-      if (result.success && result.data) {
-        setNames(result.data);
+      const data = await response.json();
+
+      if (response.ok) {
+        setNames(data.names);
+        incrementUsage();
+        setRemainingUsage(getRemainingUsage());
       } else {
-        console.error('Failed to generate names:', result.error);
+        console.error('Failed to generate names:', data.error);
+        alert(data.error);
       }
     } catch (error) {
       console.error('Failed to generate names:', error);
+      alert('Failed to generate names. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -46,9 +71,18 @@ export default function BabyNamesPage() {
           ← Back to Home
         </Button>
       </Link>
-      <h1 className="text-4xl font-bold font-montserrat text-[#333333] mb-8">
-        Generate Baby Names
-      </h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold font-montserrat text-[#333333]">
+          Generate Baby Names
+        </h1>
+        <div className="text-sm text-gray-600">
+          {remainingUsage > 0 ? (
+            <span>{remainingUsage} free generations remaining</span>
+          ) : (
+            <span className="text-red-600">Free limit reached</span>
+          )}
+        </div>
+      </div>
 
       <form className="space-y-6 mb-8">
         <div>

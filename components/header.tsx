@@ -1,25 +1,15 @@
 'use client';
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter, usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 export function Header() {
-  const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClientComponentClient();
 
   // Hide header on auth pages
   if (pathname.startsWith('/auth/')) {
     return null;
   }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.refresh();
-    router.push('/auth/login');
-  };
 
   return (
     <header className="w-full border-b bg-white">
@@ -30,13 +20,6 @@ export function Header() {
         >
           NameMint
         </Link>
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          className="text-gray-600 hover:text-gray-900"
-        >
-          Log out
-        </Button>
       </div>
     </header>
   );
