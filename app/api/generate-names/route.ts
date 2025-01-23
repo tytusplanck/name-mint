@@ -7,7 +7,8 @@ const openai = new OpenAI({
 
 export async function POST(req: NextRequest) {
   try {
-    const { gender, style, length, count, currentUsage } = await req.json();
+    const { gender, style, length, count, currentUsage, popularity } =
+      await req.json();
 
     // Check if user has exceeded free limit
     if (currentUsage >= 3) {
@@ -20,8 +21,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const prompt = `Generate ${count} unique ${gender} baby names that are ${length} letters long. 
+    const popularityPrompt =
+      popularity === 100
+        ? 'very common and popular'
+        : popularity === 0
+        ? 'extremely unique and rare'
+        : popularity < 30
+        ? 'unique and uncommon'
+        : popularity < 70
+        ? 'moderately common'
+        : 'fairly popular';
+
+    const lengthDescription =
+      length === 3
+        ? 'very short (around 3 letters)'
+        : length === 4
+        ? 'short (around 4 letters)'
+        : length === 5
+        ? 'medium length (around 5 letters)'
+        : length === 6
+        ? 'somewhat long (around 6 letters)'
+        : 'long (around 7 letters)';
+
+    const prompt = `Generate ${count} unique ${gender} baby names that are ${lengthDescription}. 
     The style should be ${style || 'any'}. 
+    The names should be ${popularityPrompt}.
     Each name should be on a new line.
     Only return the names, no additional text.`;
 

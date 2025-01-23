@@ -12,8 +12,9 @@ import { getUsageCount, incrementUsage, getRemainingUsage } from '@/lib/usage';
 export default function BabyNamesPage() {
   const [gender, setGender] = useState<string>('neutral');
   const [style, setStyle] = useState<string>('');
-  const [length, setLength] = useState<number>(5);
+  const [length, setLength] = useState<number>(50);
   const [count, setCount] = useState<number>(5);
+  const [popularity, setPopularity] = useState<number>(50);
   const [loading, setLoading] = useState<boolean>(false);
   const [names, setNames] = useState<string[]>([]);
   const [remainingUsage, setRemainingUsage] = useState<number>(3);
@@ -21,6 +22,30 @@ export default function BabyNamesPage() {
   useEffect(() => {
     setRemainingUsage(getRemainingUsage());
   }, []);
+
+  const getPopularityLabel = (value: number) => {
+    if (value === 0) return 'Super Unique 🦄';
+    if (value <= 25) return 'Rare ⭐';
+    if (value <= 50) return 'Balanced 🎯';
+    if (value <= 75) return 'Popular 🌟';
+    return 'Trending 🔥';
+  };
+
+  const getLengthLabel = (value: number) => {
+    if (value === 0) return 'Tiny 🐣';
+    if (value <= 25) return 'Short 🌱';
+    if (value <= 50) return 'Medium 🌿';
+    if (value <= 75) return 'Long 🌳';
+    return 'Extra Long 🌲';
+  };
+
+  const getLengthValue = (value: number) => {
+    if (value === 0) return 3;
+    if (value <= 25) return 4;
+    if (value <= 50) return 5;
+    if (value <= 75) return 6;
+    return 7;
+  };
 
   const handleGenerate = async () => {
     if (getUsageCount() >= 3) {
@@ -40,8 +65,9 @@ export default function BabyNamesPage() {
         body: JSON.stringify({
           gender,
           style,
-          length,
+          length: getLengthValue(length),
           count,
+          popularity,
           currentUsage: getUsageCount(),
         }),
       });
@@ -121,17 +147,49 @@ export default function BabyNamesPage() {
 
         <div>
           <Label htmlFor="length" className="text-lg font-semibold mb-2 block">
-            Name Length: {length} letters
+            Name Length: {getLengthLabel(length)}
           </Label>
           <Slider
             id="length"
-            min={2}
-            max={12}
-            step={1}
+            min={0}
+            max={100}
+            step={25}
             value={[length]}
             onValueChange={(value) => setLength(value[0])}
             className="max-w-xs"
           />
+          <div className="flex justify-between text-sm text-gray-500 mt-1 max-w-xs">
+            <span>🐣</span>
+            <span>🌱</span>
+            <span>🌿</span>
+            <span>🌳</span>
+            <span>🌲</span>
+          </div>
+        </div>
+
+        <div>
+          <Label
+            htmlFor="popularity"
+            className="text-lg font-semibold mb-2 block"
+          >
+            Popularity: {getPopularityLabel(popularity)}
+          </Label>
+          <Slider
+            id="popularity"
+            min={0}
+            max={100}
+            step={25}
+            value={[popularity]}
+            onValueChange={(value) => setPopularity(value[0])}
+            className="max-w-xs"
+          />
+          <div className="flex justify-between text-sm text-gray-500 mt-1 max-w-xs">
+            <span>🦄</span>
+            <span>⭐</span>
+            <span>🎯</span>
+            <span>🌟</span>
+            <span>🔥</span>
+          </div>
         </div>
 
         <div>
