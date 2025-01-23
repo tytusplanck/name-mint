@@ -19,6 +19,16 @@ export function Header() {
       setIsLoggedIn(!!user);
     }
     checkAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session?.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [supabase]);
 
   // Hide header on auth pages
@@ -41,22 +51,31 @@ export function Header() {
           NameMint
         </Link>
 
-        {isLoggedIn && (
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4">
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/profile"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
             <Link
-              href="/profile"
+              href="/auth/login"
               className="text-gray-600 hover:text-gray-900 transition-colors"
             >
-              Profile
+              Login
             </Link>
-            <button
-              onClick={handleLogout}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </header>
   );
