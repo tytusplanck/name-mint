@@ -1,8 +1,5 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-const FREE_CREDITS = 3;
-const LOCAL_STORAGE_KEY = 'name_generator_usage';
-
 interface Credits {
   id: string;
   user_id: string;
@@ -21,23 +18,7 @@ export async function getUserCredits(): Promise<{
   } = await supabase.auth.getSession();
 
   if (!session) {
-    // For unauthenticated users, use localStorage
-    if (typeof window === 'undefined')
-      return { credits: FREE_CREDITS, isAuthenticated: false };
-
-    // Initialize credits if they don't exist
-    const storedUsage = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedUsage === null) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, '0');
-    }
-
-    const usedCredits = parseInt(
-      localStorage.getItem(LOCAL_STORAGE_KEY) || '0'
-    );
-    return {
-      credits: Math.max(0, FREE_CREDITS - usedCredits),
-      isAuthenticated: false,
-    };
+    return { credits: 0, isAuthenticated: false };
   }
 
   // For authenticated users, use Supabase
@@ -64,14 +45,7 @@ export async function decrementCredits(): Promise<boolean> {
   } = await supabase.auth.getSession();
 
   if (!session) {
-    // For unauthenticated users, use localStorage
-    if (typeof window === 'undefined') return false;
-    const currentUsage = parseInt(
-      localStorage.getItem(LOCAL_STORAGE_KEY) || '0'
-    );
-    if (currentUsage >= FREE_CREDITS) return false;
-    localStorage.setItem(LOCAL_STORAGE_KEY, (currentUsage + 1).toString());
-    return true;
+    return false;
   }
 
   // For authenticated users, use Supabase
@@ -91,6 +65,6 @@ export async function hasAvailableCredits(): Promise<boolean> {
 }
 
 export function clearLocalCredits(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(LOCAL_STORAGE_KEY);
+  // No longer needed as we don't store local credits
+  return;
 }

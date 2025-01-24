@@ -13,18 +13,12 @@ export async function POST(req: NextRequest) {
       data: { session },
     } = await supabase.auth.getSession();
 
-    let freeUsageCount = 0;
-    // Check free usage for unauthenticated users
+    // Require authentication for all requests
     if (!session) {
-      freeUsageCount = parseInt(
-        req.cookies.get('name_generator_usage')?.value || '0'
+      return NextResponse.json(
+        { error: 'Please create an account to generate names.' },
+        { status: 401 }
       );
-      if (freeUsageCount >= 3) {
-        return NextResponse.json(
-          { error: 'Please create an account to continue generating names.' },
-          { status: 401 }
-        );
-      }
     }
 
     const { type, ...params } = await req.json();
@@ -50,16 +44,6 @@ export async function POST(req: NextRequest) {
 
     const generatedNames =
       completion.choices[0].message.content?.trim().split('\n') || [];
-
-    // For unauthenticated users, update the cookie
-    if (!session) {
-      const response = NextResponse.json({ names: generatedNames });
-      response.cookies.set(
-        'name_generator_usage',
-        (freeUsageCount + 1).toString()
-      );
-      return response;
-    }
 
     return NextResponse.json({
       names: generatedNames,

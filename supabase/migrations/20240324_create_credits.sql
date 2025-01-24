@@ -1,3 +1,7 @@
+-- Drop existing objects if they exist
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_user();
+
 -- Create credits table
 CREATE TABLE credits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,17 +25,23 @@ CREATE POLICY "Service role can manage credits"
   USING (auth.uid() = user_id) 
   WITH CHECK (auth.uid() = user_id);
 
--- Function to create credits row on user signup
+-- Function to create both profile and credits on user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
 BEGIN
+  -- Create profile
+  INSERT INTO public.profiles (id)
+  VALUES (new.id);
+  
+  -- Create credits with initial amount
   INSERT INTO public.credits (user_id, credits_remaining)
-  VALUES (new.id, 3); -- Start with 3 free credits
+  VALUES (new.id, 3);
+  
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to create credits on signup
+-- Trigger to create profile and credits on signup
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user(); 

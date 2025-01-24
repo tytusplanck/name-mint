@@ -131,7 +131,7 @@ export default function DnDNamesPage() {
   };
 
   const showPremiumOverlay =
-    !isLoadingCredits && (!isAuthenticated || remainingCredits <= 1);
+    !isLoadingCredits && (!isAuthenticated || remainingCredits < 5);
 
   return (
     <main className="mx-auto max-w-4xl p-4 sm:p-8 bg-white min-h-screen space-y-6 sm:space-y-8">
