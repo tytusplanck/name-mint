@@ -64,6 +64,11 @@ export async function hasAvailableCredits(): Promise<boolean> {
   return credits > 0;
 }
 
+export async function hasPremiumAccess(): Promise<boolean> {
+  const { credits } = await getUserCredits();
+  return credits >= 20;
+}
+
 export function clearLocalCredits(): void {
   // No longer needed as we don't store local credits
   return;

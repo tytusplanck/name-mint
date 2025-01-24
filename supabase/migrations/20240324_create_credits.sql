@@ -3,7 +3,7 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
 -- Create credits table
-CREATE TABLE credits (
+CREATE TABLE IF NOT EXISTS credits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) NOT NULL,
   credits_remaining INTEGER NOT NULL DEFAULT 0,
@@ -13,6 +13,10 @@ CREATE TABLE credits (
 
 -- Create RLS policies
 ALTER TABLE credits ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own credits" ON credits;
+DROP POLICY IF EXISTS "Service role can manage credits" ON credits;
 
 -- Users can only read their own credits
 CREATE POLICY "Users can view own credits" 
@@ -35,7 +39,7 @@ BEGIN
   
   -- Create credits with initial amount
   INSERT INTO public.credits (user_id, credits_remaining)
-  VALUES (new.id, 3);
+  VALUES (new.id, 10);
   
   RETURN new;
 END;

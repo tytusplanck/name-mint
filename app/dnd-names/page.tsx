@@ -19,7 +19,7 @@ const PremiumFeatureOverlay = ({ children }: { children: React.ReactNode }) => (
         </div>
         <h3 className="font-semibold text-lg mb-2">Premium Features</h3>
         <p className="text-sm text-gray-600 mb-3">
-          Unlock advanced name customization with alignment and background
+          Unlock advanced character customization with alignment and background
           options!
         </p>
         <Link href="/auth/signup">
@@ -131,7 +131,7 @@ export default function DnDNamesPage() {
   };
 
   const showPremiumOverlay =
-    !isLoadingCredits && (!isAuthenticated || remainingCredits < 5);
+    !isLoadingCredits && (!isAuthenticated || remainingCredits < 20);
 
   return (
     <main className="mx-auto max-w-4xl p-4 sm:p-8 bg-white min-h-screen space-y-6 sm:space-y-8">

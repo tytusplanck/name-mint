@@ -19,7 +19,8 @@ const PremiumFeatureOverlay = ({ children }: { children: React.ReactNode }) => (
         </div>
         <h3 className="font-semibold text-lg mb-2">Premium Features</h3>
         <p className="text-sm text-gray-600 mb-3">
-          Unlock advanced team name customization with style and theme controls!
+          Unlock advanced team name customization with style preferences and
+          player name integration!
         </p>
         <Link href="/auth/signup">
           <Button className="bg-[#4F46E5] hover:bg-[#3730A3]">
@@ -128,7 +129,7 @@ export default function FantasyFootballPage() {
   };
 
   const showPremiumOverlay =
-    !isLoadingCredits && (!isAuthenticated || remainingCredits < 5);
+    !isLoadingCredits && (!isAuthenticated || remainingCredits < 20);
 
   return (
     <main className="mx-auto max-w-4xl p-4 sm:p-8 bg-white min-h-screen space-y-6 sm:space-y-8">
@@ -270,7 +271,7 @@ export default function FantasyFootballPage() {
             </div>
           ) : showPremiumOverlay ? (
             <PremiumFeatureOverlay>
-              <div className="space-y-8">
+              <div className="space-y-8 opacity-50">
                 <div className="space-y-4">
                   <Label
                     htmlFor="style"
