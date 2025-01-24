@@ -4,12 +4,14 @@ import {
   FantasyFootballParams,
 } from './fantasy-football';
 import { babyNameGenerator, BabyNameParams } from './baby-names';
+import { dndNamesGenerator, DnDNamesParams } from './dnd-names';
 
-export type GeneratorType = 'fantasy-football' | 'baby-names';
+export type GeneratorType = 'fantasy-football' | 'baby-names' | 'dnd-names';
 
 export type GeneratorParams = {
   'fantasy-football': FantasyFootballParams;
   'baby-names': BabyNameParams;
+  'dnd-names': DnDNamesParams;
 };
 
 const generators: {
@@ -17,6 +19,7 @@ const generators: {
 } = {
   'fantasy-football': fantasyFootballGenerator,
   'baby-names': babyNameGenerator,
+  'dnd-names': dndNamesGenerator,
 };
 
 export function getGenerator<T extends GeneratorType>(

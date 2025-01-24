@@ -17,6 +17,14 @@ export default function LandingPage() {
       gradient: 'from-[#4F46E5] to-[#3730A3]',
       icon: '🏈',
     },
+    {
+      title: 'D&D Characters',
+      description:
+        'Generate fantasy names for your D&D characters with race and class options',
+      href: '/dnd-names',
+      gradient: 'from-purple-500 to-red-500',
+      icon: '🧙',
+    },
     // More generators can be added here in the future
   ];
 
