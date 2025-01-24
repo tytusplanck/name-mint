@@ -6,31 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
-import Link from 'next/link';
 import { getUserCredits, decrementCredits } from '@/lib/credits';
-
-const PremiumFeatureOverlay = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative">
-    {children}
-    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] rounded-lg flex items-center justify-center">
-      <div className="text-center p-4 bg-white/80 rounded-xl shadow-lg border border-[#4F46E5]/20">
-        <div className="bg-[#4F46E5]/10 rounded-full p-3 w-fit mx-auto mb-3">
-          <span className="text-2xl">✨</span>
-        </div>
-        <h3 className="font-semibold text-lg mb-2">Premium Features</h3>
-        <p className="text-sm text-gray-600 mb-3">
-          Unlock advanced team name customization with style preferences and
-          player name integration!
-        </p>
-        <Link href="/auth/signup">
-          <Button className="bg-[#4F46E5] hover:bg-[#3730A3]">
-            Get Started
-          </Button>
-        </Link>
-      </div>
-    </div>
-  </div>
-);
+import { NameGeneratorLayout } from '@/components/name-generator/NameGeneratorLayout';
+import { CreditStatus } from '@/components/name-generator/CreditStatus';
+import { PremiumFeatureOverlay } from '@/components/name-generator/PremiumFeatureOverlay';
+import { NameResults } from '@/components/name-generator/NameResults';
 
 export default function FantasyFootballPage() {
   const [style, setStyle] = useState<string>('');
@@ -132,38 +112,14 @@ export default function FantasyFootballPage() {
     !isLoadingCredits && (!isAuthenticated || remainingCredits < 20);
 
   return (
-    <main className="mx-auto max-w-4xl p-4 sm:p-8 bg-white min-h-screen space-y-6 sm:space-y-8">
-      <Link href="/">
-        <Button variant="ghost" className="text-sm sm:text-base">
-          ← Back to Home
-        </Button>
-      </Link>
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 className="text-3xl sm:text-4xl font-bold font-montserrat text-[#333333]">
-          Fantasy Football Team Names
-        </h1>
-        <div className="flex flex-col items-start sm:items-end gap-2">
-          <div className="text-sm text-gray-600">
-            {isLoadingCredits ? (
-              <span>Loading...</span>
-            ) : remainingCredits > 0 ? (
-              <span>
-                {remainingCredits} free generation
-                {remainingCredits !== 1 ? 's' : ''} remaining
-              </span>
-            ) : (
-              <span className="text-red-600">No generations remaining</span>
-            )}
-          </div>
-          {!isLoadingCredits && !isAuthenticated && (
-            <Link
-              href="/auth/signup"
-              className="text-xs text-[#4F46E5] hover:text-[#3730A3]"
-            >
-              Create account for more credits →
-            </Link>
-          )}
-        </div>
+    <NameGeneratorLayout title="Fantasy Football Team Names">
+      <div className="flex justify-end">
+        <CreditStatus
+          isLoadingCredits={isLoadingCredits}
+          remainingCredits={remainingCredits}
+          isAuthenticated={isAuthenticated}
+          accentColor="#4F46E5"
+        />
       </div>
 
       <form className="space-y-6 sm:space-y-8">
@@ -270,8 +226,11 @@ export default function FantasyFootballPage() {
               </div>
             </div>
           ) : showPremiumOverlay ? (
-            <PremiumFeatureOverlay>
-              <div className="space-y-8 opacity-50">
+            <PremiumFeatureOverlay
+              message="Unlock advanced team name customization with style preferences and player name integration!"
+              accentColor="#4F46E5"
+            >
+              <div className="space-y-8">
                 <div className="space-y-4">
                   <Label
                     htmlFor="style"
@@ -347,23 +306,7 @@ export default function FantasyFootballPage() {
         </Button>
       </form>
 
-      {names.length > 0 && (
-        <div className="pt-8 border-t space-y-4">
-          <h2 className="text-xl font-semibold text-[#333333]">
-            Generated Names
-          </h2>
-          <div className="grid gap-3">
-            {names.map((name, index) => (
-              <div
-                key={index}
-                className="p-4 bg-gradient-to-r from-purple-50 to-red-50 rounded-lg border border-purple-100/50 hover:border-purple-200/50 transition-colors"
-              >
-                <p className="text-gray-800 font-medium">{name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </main>
+      <NameResults names={names} />
+    </NameGeneratorLayout>
   );
 }
