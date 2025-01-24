@@ -71,8 +71,8 @@ export default function LandingPage() {
           <p className="text-sm sm:text-base font-inter text-gray-600 text-center">
             AI-Powered Name Generation for Every Occasion
           </p>
-          <p className="text-[10px] sm:text-xs text-gray-500 font-inter">
-            &copy; 2025 NameMint. All rights reserved.
+          <p className="text-sm text-gray-500">
+            &copy; 2025 Nametica. All rights reserved.
           </p>
         </div>
       </footer>

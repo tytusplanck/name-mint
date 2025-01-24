@@ -44,11 +44,8 @@ export function Header() {
   return (
     <header className="w-full border-b bg-white">
       <div className="mx-auto max-w-6xl p-4 flex justify-between items-center">
-        <Link
-          href="/"
-          className="text-2xl font-bold font-montserrat bg-gradient-to-r from-[#63BCA5] to-[#52AB94] text-transparent bg-clip-text"
-        >
-          NameMint
+        <Link href="/" className="text-xl font-bold text-[#333333]">
+          Nametica
         </Link>
 
         <div className="flex items-center space-x-4">
