@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { getGenerator, GeneratorType, GeneratorParams } from '@/lib/generators';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,40 +27,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { gender, style, length, count, popularity } = await req.json();
-
-    const popularityPrompt =
-      popularity === 100
-        ? 'very common and popular'
-        : popularity === 0
-        ? 'extremely unique and rare'
-        : popularity < 30
-        ? 'unique and uncommon'
-        : popularity < 70
-        ? 'moderately common'
-        : 'fairly popular';
-
-    const lengthDescription =
-      length === 3
-        ? 'very short (around 3 letters)'
-        : length === 4
-        ? 'short (around 4 letters)'
-        : length === 5
-        ? 'medium length (around 5 letters)'
-        : length === 6
-        ? 'somewhat long (around 6 letters)'
-        : 'long (around 7 letters)';
-
-    const prompt = `Generate ${count} unique ${gender} baby names that are ${lengthDescription}. 
-    The style should be ${style || 'any'}. 
-    The names should be ${popularityPrompt}.
-    Each name should be on a new line.
-    Only return the names, no additional text.`;
+    const { type, ...params } = await req.json();
+    const generatorType = type as GeneratorType;
+    const generator = getGenerator(generatorType);
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
+      messages: [
+        {
+          role: 'system',
+          content: generator.systemPrompt,
+        },
+        {
+          role: 'user',
+          content: generator.generatePrompt(
+            params as GeneratorParams[typeof generatorType]
+          ),
+        },
+      ],
+      temperature: generator.temperature,
     });
 
     const generatedNames =

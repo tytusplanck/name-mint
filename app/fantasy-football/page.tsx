@@ -13,16 +13,16 @@ const PremiumFeatureOverlay = ({ children }: { children: React.ReactNode }) => (
   <div className="relative">
     {children}
     <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] rounded-lg flex items-center justify-center">
-      <div className="text-center p-4 bg-white/80 rounded-xl shadow-lg border border-[#63BCA5]/20">
-        <div className="bg-[#63BCA5]/10 rounded-full p-3 w-fit mx-auto mb-3">
+      <div className="text-center p-4 bg-white/80 rounded-xl shadow-lg border border-[#4F46E5]/20">
+        <div className="bg-[#4F46E5]/10 rounded-full p-3 w-fit mx-auto mb-3">
           <span className="text-2xl">✨</span>
         </div>
         <h3 className="font-semibold text-lg mb-2">Premium Features</h3>
         <p className="text-sm text-gray-600 mb-3">
-          Unlock advanced name customization with style and length controls!
+          Unlock advanced team name customization with style and theme controls!
         </p>
         <Link href="/auth/signup">
-          <Button className="bg-[#63BCA5] hover:bg-[#52AB94]">
+          <Button className="bg-[#4F46E5] hover:bg-[#3730A3]">
             Get Started
           </Button>
         </Link>
@@ -31,12 +31,12 @@ const PremiumFeatureOverlay = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-export default function BabyNamesPage() {
-  const [gender, setGender] = useState<string>('neutral');
+export default function FantasyFootballPage() {
   const [style, setStyle] = useState<string>('');
-  const [length, setLength] = useState<number>(50);
+  const [theme, setTheme] = useState<string>('funny');
+  const [playerName, setPlayerName] = useState<string>('');
   const [count, setCount] = useState<number>(5);
-  const [popularity, setPopularity] = useState<number>(50);
+  const [cleverness, setCleverness] = useState<number>(50);
   const [loading, setLoading] = useState<boolean>(false);
   const [names, setNames] = useState<string[]>([]);
   const [remainingCredits, setRemainingCredits] = useState<number>(0);
@@ -54,28 +54,12 @@ export default function BabyNamesPage() {
     fetchCredits();
   }, []);
 
-  const getPopularityLabel = (value: number) => {
-    if (value === 0) return 'Super Unique 🦄';
-    if (value <= 25) return 'Rare ⭐';
-    if (value <= 50) return 'Balanced 🎯';
-    if (value <= 75) return 'Popular 🌟';
-    return 'Trending 🔥';
-  };
-
-  const getLengthLabel = (value: number) => {
-    if (value === 0) return 'Tiny 🐣';
-    if (value <= 25) return 'Short 🌱';
-    if (value <= 50) return 'Medium 🌿';
-    if (value <= 75) return 'Long 🌳';
-    return 'Extra Long 🌲';
-  };
-
-  const getLengthValue = (value: number) => {
-    if (value === 0) return 3;
-    if (value <= 25) return 4;
-    if (value <= 50) return 5;
-    if (value <= 75) return 6;
-    return 7;
+  const getClevernessLabel = (value: number) => {
+    if (value === 0) return 'Simple 🎯';
+    if (value <= 25) return 'Casual 😊';
+    if (value <= 50) return 'Clever 🧠';
+    if (value <= 75) return 'Witty 😎';
+    return 'Epic 🔥';
   };
 
   const handleGenerate = async () => {
@@ -104,12 +88,12 @@ export default function BabyNamesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: 'baby-names',
-          gender,
+          type: 'fantasy-football',
+          theme,
           style,
-          length: getLengthValue(length),
+          playerName,
           count,
-          popularity,
+          cleverness,
         }),
       });
 
@@ -155,7 +139,7 @@ export default function BabyNamesPage() {
       </Link>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 className="text-3xl sm:text-4xl font-bold font-montserrat text-[#333333]">
-          Generate Baby Names
+          Fantasy Football Team Names
         </h1>
         <div className="flex flex-col items-start sm:items-end gap-2">
           <div className="text-sm text-gray-600">
@@ -173,7 +157,7 @@ export default function BabyNamesPage() {
           {!isLoadingCredits && !isAuthenticated && (
             <Link
               href="/auth/signup"
-              className="text-xs text-[#63BCA5] hover:text-[#52AB94]"
+              className="text-xs text-[#4F46E5] hover:text-[#3730A3]"
             >
               Create account for more credits →
             </Link>
@@ -184,49 +168,49 @@ export default function BabyNamesPage() {
       <form className="space-y-6 sm:space-y-8">
         <div className="space-y-3 sm:space-y-4">
           <Label className="text-base sm:text-lg font-semibold block">
-            Gender
+            Theme
           </Label>
           <RadioGroup
-            value={gender}
-            onValueChange={setGender}
+            value={theme}
+            onValueChange={setTheme}
             className="flex flex-wrap gap-4 sm:gap-6"
           >
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="boy" id="boy" />
-              <Label htmlFor="boy">Boy</Label>
+              <RadioGroupItem value="funny" id="funny" />
+              <Label htmlFor="funny">Funny</Label>
             </div>
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="girl" id="girl" />
-              <Label htmlFor="girl">Girl</Label>
+              <RadioGroupItem value="intimidating" id="intimidating" />
+              <Label htmlFor="intimidating">Intimidating</Label>
             </div>
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="neutral" id="neutral" />
-              <Label htmlFor="neutral">Neutral</Label>
+              <RadioGroupItem value="classic" id="classic" />
+              <Label htmlFor="classic">Classic</Label>
             </div>
           </RadioGroup>
         </div>
 
         <div className="space-y-3 sm:space-y-4">
           <Label
-            htmlFor="popularity"
+            htmlFor="cleverness"
             className="text-base sm:text-lg font-semibold block"
           >
-            Popularity: {getPopularityLabel(popularity)}
+            Cleverness: {getClevernessLabel(cleverness)}
           </Label>
           <Slider
-            id="popularity"
+            id="cleverness"
             min={0}
             max={100}
             step={25}
-            value={[popularity]}
-            onValueChange={(value) => setPopularity(value[0])}
+            value={[cleverness]}
+            onValueChange={(value) => setCleverness(value[0])}
             className="w-full max-w-xs"
           />
           <div className="flex justify-between text-sm text-gray-500 max-w-xs">
-            <span>🦄</span>
-            <span>⭐</span>
             <span>🎯</span>
-            <span>🌟</span>
+            <span>😊</span>
+            <span>🧠</span>
+            <span>😎</span>
             <span>🔥</span>
           </div>
         </div>
@@ -257,11 +241,11 @@ export default function BabyNamesPage() {
             <div className="space-y-8 opacity-50">
               <div className="space-y-4">
                 <Label htmlFor="style" className="text-lg font-semibold block">
-                  Name Style
+                  Style Preferences
                 </Label>
                 <Input
                   id="style"
-                  placeholder="e.g., Modern, Classic, Unique"
+                  placeholder="e.g., Pop Culture, Movie References, Sports Puns"
                   value={style}
                   onChange={(e) => setStyle(e.target.value)}
                   disabled
@@ -269,26 +253,19 @@ export default function BabyNamesPage() {
               </div>
 
               <div className="space-y-4">
-                <Label htmlFor="length" className="text-lg font-semibold block">
-                  Name Length: {getLengthLabel(length)}
+                <Label
+                  htmlFor="playerName"
+                  className="text-lg font-semibold block"
+                >
+                  Player Name
                 </Label>
-                <Slider
-                  id="length"
-                  min={0}
-                  max={100}
-                  step={25}
-                  value={[length]}
-                  onValueChange={(value) => setLength(value[0])}
-                  className="max-w-xs"
+                <Input
+                  id="playerName"
+                  placeholder="Enter a player name to incorporate (optional)"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
                   disabled
                 />
-                <div className="flex justify-between text-sm text-gray-500 max-w-xs">
-                  <span>🐣</span>
-                  <span>🌱</span>
-                  <span>🌿</span>
-                  <span>🌳</span>
-                  <span>🌲</span>
-                </div>
               </div>
             </div>
           ) : showPremiumOverlay ? (
@@ -299,11 +276,11 @@ export default function BabyNamesPage() {
                     htmlFor="style"
                     className="text-lg font-semibold block"
                   >
-                    Name Style
+                    Style Preferences
                   </Label>
                   <Input
                     id="style"
-                    placeholder="e.g., Modern, Classic, Unique"
+                    placeholder="e.g., Pop Culture, Movie References, Sports Puns"
                     value={style}
                     onChange={(e) => setStyle(e.target.value)}
                     disabled
@@ -312,28 +289,18 @@ export default function BabyNamesPage() {
 
                 <div className="space-y-4">
                   <Label
-                    htmlFor="length"
+                    htmlFor="playerName"
                     className="text-lg font-semibold block"
                   >
-                    Name Length: {getLengthLabel(length)}
+                    Player Name
                   </Label>
-                  <Slider
-                    id="length"
-                    min={0}
-                    max={100}
-                    step={25}
-                    value={[length]}
-                    onValueChange={(value) => setLength(value[0])}
-                    className="max-w-xs"
+                  <Input
+                    id="playerName"
+                    placeholder="Enter a player name to incorporate (optional)"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
                     disabled
                   />
-                  <div className="flex justify-between text-sm text-gray-500 max-w-xs">
-                    <span>🐣</span>
-                    <span>🌱</span>
-                    <span>🌿</span>
-                    <span>🌳</span>
-                    <span>🌲</span>
-                  </div>
                 </div>
               </div>
             </PremiumFeatureOverlay>
@@ -341,36 +308,29 @@ export default function BabyNamesPage() {
             <>
               <div className="space-y-4">
                 <Label htmlFor="style" className="text-lg font-semibold block">
-                  Name Style
+                  Style Preferences
                 </Label>
                 <Input
                   id="style"
-                  placeholder="e.g., Modern, Classic, Unique"
+                  placeholder="e.g., Pop Culture, Movie References, Sports Puns"
                   value={style}
                   onChange={(e) => setStyle(e.target.value)}
                 />
               </div>
 
               <div className="space-y-4">
-                <Label htmlFor="length" className="text-lg font-semibold block">
-                  Name Length: {getLengthLabel(length)}
+                <Label
+                  htmlFor="playerName"
+                  className="text-lg font-semibold block"
+                >
+                  Player Name
                 </Label>
-                <Slider
-                  id="length"
-                  min={0}
-                  max={100}
-                  step={25}
-                  value={[length]}
-                  onValueChange={(value) => setLength(value[0])}
-                  className="max-w-xs"
+                <Input
+                  id="playerName"
+                  placeholder="Enter a player name to incorporate (optional)"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
                 />
-                <div className="flex justify-between text-sm text-gray-500 max-w-xs">
-                  <span>🐣</span>
-                  <span>🌱</span>
-                  <span>🌿</span>
-                  <span>🌳</span>
-                  <span>🌲</span>
-                </div>
               </div>
             </>
           )}
@@ -379,7 +339,7 @@ export default function BabyNamesPage() {
         <Button
           type="button"
           onClick={handleGenerate}
-          className="bg-[#63BCA5] text-white font-inter py-3 px-6 text-lg hover:bg-[#52AB94] transition-colors mt-8"
+          className="bg-[#4F46E5] text-white font-inter py-3 px-6 text-lg hover:bg-[#3730A3] transition-colors mt-8"
           disabled={loading}
         >
           {loading ? 'Generating...' : 'Generate Names'}

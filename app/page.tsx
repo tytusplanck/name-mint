@@ -10,6 +10,13 @@ export default function LandingPage() {
       gradient: 'from-[#63BCA5] to-[#52AB94]',
       icon: '👶',
     },
+    {
+      title: 'Fantasy Football',
+      description: 'Create clever and competitive team names for your league',
+      href: '/fantasy-football',
+      gradient: 'from-[#4F46E5] to-[#3730A3]',
+      icon: '🏈',
+    },
     // More generators can be added here in the future
   ];
 
