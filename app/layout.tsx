@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { Inter, Montserrat } from 'next/font/google';
 import { Header } from '@/components/header';
 import { Metadata } from 'next';
+import { AuthProvider } from '@/components/providers/AuthProvider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const montserrat = Montserrat({
@@ -23,9 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${montserrat.variable} font-sans`}>
-        <Header />
-        {children}
-        <Analytics />
+        <AuthProvider>
+          <Header />
+          {children}
+          <Analytics />
+        </AuthProvider>
       </body>
     </html>
   );

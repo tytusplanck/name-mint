@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,21 +20,17 @@ export default function FantasyFootballPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [names, setNames] = useState<string[]>([]);
 
-  const { user, credits, isLoading, initialize } = useAuthStore();
+  const { user, credits, isLoading } = useAuthStore();
 
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  const getIntensityLabel = (value: number) => {
+  const getIntensityLabel = useCallback((value: number) => {
     if (value === 0) return 'Mild 😊';
     if (value <= 25) return 'Playful 😄';
     if (value <= 50) return 'Competitive 💪';
     if (value <= 75) return 'Fierce 🔥';
     return 'Savage 😈';
-  };
+  }, []);
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (credits <= 0) {
       if (!user) {
         if (
@@ -68,11 +64,7 @@ export default function FantasyFootballPage() {
         }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setNames(data.names);
-      } else {
+      if (!response.ok) {
         if (response.status === 401) {
           if (
             confirm(
@@ -86,19 +78,24 @@ export default function FantasyFootballPage() {
             'You have no credits remaining. Please purchase more credits to continue.'
           );
         } else {
+          const data = await response.json();
           console.error('Failed to generate names:', data.error);
           alert(data.error);
         }
+        return;
       }
+
+      const data = await response.json();
+      setNames(data.names);
     } catch (error) {
       console.error('Failed to generate names:', error);
       alert('Failed to generate names. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [credits, user, style, theme, intensity, count]);
 
-  const showPremiumOverlay = !isLoading && (!user || credits < 20);
+  const showPremiumOverlay = !user || credits < 20;
 
   return (
     <NameGeneratorLayout title="Generate Fantasy Football Team Names">
@@ -182,7 +179,7 @@ export default function FantasyFootballPage() {
           <h2 className="text-xl font-semibold text-[#333333]">
             Advanced Customization
           </h2>
-          {isLoading ? (
+          {loading ? (
             <div className="space-y-4 opacity-50">
               <Label htmlFor="theme" className="text-lg font-semibold block">
                 Team Theme

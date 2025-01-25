@@ -53,21 +53,11 @@ export default function CreditsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    initialize();
-  }, []);
-
-  // Refresh credits when the page gains focus (e.g., returning from success page)
-  useEffect(() => {
-    function onFocus() {
-      // Don't refresh if we're being redirected to the success page
-      if (!window.location.pathname.includes('/credits/success')) {
-        initialize();
-      }
+    // Only initialize if we don't have user data yet
+    if (!user) {
+      initialize();
     }
-
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, []);
+  }, [user]);
 
   const handlePurchase = async (tier: PricingTier) => {
     if (!user) {

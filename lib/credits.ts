@@ -1,4 +1,5 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useAuthStore } from '@/lib/store/auth';
 
 interface Credits {
   id: string;
@@ -40,11 +41,9 @@ export async function getUserCredits(): Promise<{
 
 export async function decrementCredits(): Promise<boolean> {
   const supabase = createClientComponentClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { user } = useAuthStore.getState();
 
-  if (!session) {
+  if (!user) {
     return false;
   }
 
@@ -59,13 +58,13 @@ export async function decrementCredits(): Promise<boolean> {
   return true;
 }
 
-export async function hasAvailableCredits(): Promise<boolean> {
-  const { credits } = await getUserCredits();
+export function hasAvailableCredits(): boolean {
+  const { credits } = useAuthStore.getState();
   return credits > 0;
 }
 
-export async function hasPremiumAccess(): Promise<boolean> {
-  const { credits } = await getUserCredits();
+export function hasPremiumAccess(): boolean {
+  const { credits } = useAuthStore.getState();
   return credits >= 20;
 }
 

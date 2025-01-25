@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { memo } from 'react';
 
 interface CreditStatusProps {
   isLoadingCredits: boolean;
@@ -7,7 +8,7 @@ interface CreditStatusProps {
   accentColor?: string;
 }
 
-export function CreditStatus({
+export const CreditStatus = memo(function CreditStatus({
   isLoadingCredits,
   remainingCredits,
   isAuthenticated,
@@ -38,4 +39,4 @@ export function CreditStatus({
       )}
     </div>
   );
-}
+});

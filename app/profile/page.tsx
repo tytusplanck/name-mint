@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/lib/store/auth';
 
 export default function ProfilePage() {
-  const { user, credits, isLoading, initialize } = useAuthStore();
+  const { user, credits, isLoading } = useAuthStore();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient();
   const router = useRouter();
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     async function loadProfile() {
@@ -36,7 +36,6 @@ export default function ProfilePage() {
       setLoading(false);
     }
 
-    initialize();
     loadProfile();
   }, [user]);
 

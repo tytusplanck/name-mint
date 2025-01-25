@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,37 +21,33 @@ export default function BabyNamesPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [names, setNames] = useState<string[]>([]);
 
-  const { user, credits, isLoading, initialize } = useAuthStore();
+  const { user, credits, isLoading } = useAuthStore();
 
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  const getPopularityLabel = (value: number) => {
+  const getPopularityLabel = useCallback((value: number) => {
     if (value === 0) return 'Super Unique 🦄';
     if (value <= 25) return 'Rare ⭐';
     if (value <= 50) return 'Balanced 🎯';
     if (value <= 75) return 'Popular 🌟';
     return 'Trending 🔥';
-  };
+  }, []);
 
-  const getLengthLabel = (value: number) => {
+  const getLengthLabel = useCallback((value: number) => {
     if (value === 0) return 'Tiny 🐣';
     if (value <= 25) return 'Short 🌱';
     if (value <= 50) return 'Medium 🌿';
     if (value <= 75) return 'Long 🌳';
     return 'Extra Long 🌲';
-  };
+  }, []);
 
-  const getLengthValue = (value: number) => {
+  const getLengthValue = useCallback((value: number) => {
     if (value === 0) return 3;
     if (value <= 25) return 4;
     if (value <= 50) return 5;
     if (value <= 75) return 6;
     return 7;
-  };
+  }, []);
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (credits <= 0) {
       if (!user) {
         if (
@@ -86,11 +82,7 @@ export default function BabyNamesPage() {
         }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setNames(data.names);
-      } else {
+      if (!response.ok) {
         if (response.status === 401) {
           if (
             confirm(
@@ -104,19 +96,24 @@ export default function BabyNamesPage() {
             'You have no credits remaining. Please purchase more credits to continue.'
           );
         } else {
+          const data = await response.json();
           console.error('Failed to generate names:', data.error);
           alert(data.error);
         }
+        return;
       }
+
+      const data = await response.json();
+      setNames(data.names);
     } catch (error) {
       console.error('Failed to generate names:', error);
       alert('Failed to generate names. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [credits, user, gender, style, length, count, popularity, getLengthValue]);
 
-  const showPremiumOverlay = !isLoading && (!user || credits < 20);
+  const showPremiumOverlay = !user || credits < 20;
 
   return (
     <NameGeneratorLayout title="Generate Baby Names">
@@ -200,45 +197,7 @@ export default function BabyNamesPage() {
           <h2 className="text-xl font-semibold text-[#333333]">
             Advanced Customization
           </h2>
-          {isLoading ? (
-            <div className="space-y-8 opacity-50">
-              <div className="space-y-4">
-                <Label htmlFor="style" className="text-lg font-semibold block">
-                  Name Style
-                </Label>
-                <Input
-                  id="style"
-                  placeholder="e.g., Modern, Classic, Unique"
-                  value={style}
-                  onChange={(e) => setStyle(e.target.value)}
-                  disabled
-                />
-              </div>
-
-              <div className="space-y-4">
-                <Label htmlFor="length" className="text-lg font-semibold block">
-                  Name Length: {getLengthLabel(length)}
-                </Label>
-                <Slider
-                  id="length"
-                  min={0}
-                  max={100}
-                  step={25}
-                  value={[length]}
-                  onValueChange={(value) => setLength(value[0])}
-                  className="max-w-xs"
-                  disabled
-                />
-                <div className="flex justify-between text-sm text-gray-500 max-w-xs">
-                  <span>🐣</span>
-                  <span>🌱</span>
-                  <span>🌿</span>
-                  <span>🌳</span>
-                  <span>🌲</span>
-                </div>
-              </div>
-            </div>
-          ) : showPremiumOverlay ? (
+          {showPremiumOverlay ? (
             <PremiumFeatureOverlay message="Unlock advanced name customization with style and length controls!">
               <div className="space-y-8">
                 <div className="space-y-4">

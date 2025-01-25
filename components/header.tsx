@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/auth';
 
@@ -11,12 +10,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClientComponentClient();
-
-  const { user, credits, isLoading, initialize } = useAuthStore();
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
+  const { user, credits, isLoading } = useAuthStore();
 
   // Hide header on auth pages
   if (pathname.startsWith('/auth/')) {
@@ -40,13 +34,16 @@ export function Header() {
         </Link>
 
         <div className="flex items-center space-x-4">
-          {isLoading ? (
-            <div className="h-9 w-[200px] bg-gray-200 animate-pulse rounded"></div>
-          ) : (
+          {user ? (
             <>
-              {user ? (
-                <>
-                  <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3">
+                {isLoading ? (
+                  <>
+                    <div className="h-5 w-20 bg-gray-200 animate-pulse rounded" />
+                    <div className="h-9 w-24 bg-gray-200 animate-pulse rounded" />
+                  </>
+                ) : (
+                  <>
                     <span className="text-sm text-gray-600">
                       {credits} credits
                     </span>
@@ -56,37 +53,29 @@ export function Header() {
                     >
                       Buy Credits
                     </Button>
-                  </div>
-                  <Link
-                    href="/profile"
-                    className="text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    Profile
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    className="bg-gradient-to-r from-[#63BCA5] to-[#52AB94] text-white hover:opacity-90 transition-opacity font-semibold"
-                    onClick={() => router.push('/auth/signup')}
-                  >
-                    Get Credits
-                  </Button>
-                  <Link
-                    href="/auth/login"
-                    className="text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    Login
-                  </Link>
-                </>
-              )}
+                  </>
+                )}
+              </div>
+              <Link
+                href="/profile"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Logout
+              </button>
             </>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Login
+            </Link>
           )}
         </div>
       </div>

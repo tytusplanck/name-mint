@@ -17,8 +17,6 @@ interface AuthState {
 
 const supabase = createClientComponentClient();
 
-type AuthStore = ReturnType<typeof create<AuthState>>['getState' | 'setState'];
-
 export const useAuthStore = create<AuthState>(
   (set, get): AuthState => ({
     user: null,
@@ -31,23 +29,16 @@ export const useAuthStore = create<AuthState>(
       if (get().isInitialized) return;
 
       try {
-        // Get initial auth state
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-        if (error) throw error;
+        // Get initial auth state and credits in a single request
+        const [authResponse, creditsResponse] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase.from('credits').select('credits_remaining').single(),
+        ]);
 
-        // Get initial credits if user exists
-        let credits = 0;
-        if (user) {
-          const { data: creditsData } = await supabase
-            .from('credits')
-            .select('credits_remaining')
-            .eq('user_id', user.id)
-            .single();
-          credits = creditsData?.credits_remaining ?? 0;
-        }
+        if (authResponse.error) throw authResponse.error;
+
+        const { user } = authResponse.data;
+        const credits = creditsResponse.data?.credits_remaining ?? 0;
 
         set({
           user,
@@ -64,19 +55,23 @@ export const useAuthStore = create<AuthState>(
         // Setup auth state change listener
         supabase.auth.onAuthStateChange(async (_, session) => {
           const currentUser = session?.user ?? null;
-          set({ user: currentUser });
 
-          if (currentUser) {
-            const { data: creditsData } = await supabase
-              .from('credits')
-              .select('credits_remaining')
-              .eq('user_id', currentUser.id)
-              .single();
-            set({ credits: creditsData?.credits_remaining ?? 0 });
-            await get().subscribeToCredits(currentUser.id);
-          } else {
-            set({ credits: 0 });
-            get().unsubscribeFromCredits();
+          // Only update credits if user state actually changed
+          if (currentUser?.id !== get().user?.id) {
+            set({ user: currentUser });
+
+            if (currentUser) {
+              const { data: creditsData } = await supabase
+                .from('credits')
+                .select('credits_remaining')
+                .eq('user_id', currentUser.id)
+                .single();
+              set({ credits: creditsData?.credits_remaining ?? 0 });
+              await get().subscribeToCredits(currentUser.id);
+            } else {
+              set({ credits: 0 });
+              get().unsubscribeFromCredits();
+            }
           }
         });
       } catch (error) {
@@ -90,6 +85,7 @@ export const useAuthStore = create<AuthState>(
     setCredits: (credits: number) => set({ credits }),
 
     subscribeToCredits: async (userId: string) => {
+      // Unsubscribe from existing subscription if any
       get().unsubscribeFromCredits();
 
       const subscription = supabase
