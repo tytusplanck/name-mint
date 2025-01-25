@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
+interface Credits {
+  credits_remaining: number;
+  user_id: string;
+}
 
 export function Header() {
   const pathname = usePathname();
@@ -22,6 +28,7 @@ export function Header() {
       setIsLoggedIn(!!user);
 
       if (user) {
+        // Initial credits fetch
         const { data: creditsData } = await supabase
           .from('credits')
           .select('credits_remaining')
@@ -29,6 +36,31 @@ export function Header() {
           .single();
 
         setCredits(creditsData?.credits_remaining ?? 0);
+        setIsLoadingCredits(false);
+
+        // Subscribe to credits changes
+        const creditsSubscription = supabase
+          .channel('credits_changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'credits',
+              filter: `user_id=eq.${user.id}`,
+            },
+            (payload: RealtimePostgresChangesPayload<Credits>) => {
+              const newCredits = payload.new as Credits | null;
+              if (newCredits?.credits_remaining !== undefined) {
+                setCredits(newCredits.credits_remaining);
+              }
+            }
+          )
+          .subscribe();
+
+        return () => {
+          creditsSubscription.unsubscribe();
+        };
       }
       setIsLoadingCredits(false);
     }
@@ -39,6 +71,7 @@ export function Header() {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setIsLoggedIn(!!session?.user);
       if (session?.user) {
+        // Initial credits fetch on auth state change
         const { data: creditsData } = await supabase
           .from('credits')
           .select('credits_remaining')
@@ -46,8 +79,10 @@ export function Header() {
           .single();
 
         setCredits(creditsData?.credits_remaining ?? 0);
+        setIsLoadingCredits(false);
       } else {
         setCredits(0);
+        setIsLoadingCredits(false);
       }
     });
 
