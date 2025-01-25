@@ -4,21 +4,18 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { useAuthStore } from '@/lib/store/auth';
 
 export default function ProfilePage() {
+  const { user, credits, isLoading, initialize } = useAuthStore();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [creditsRemaining, setCreditsRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
   const supabase = createClientComponentClient();
   const router = useRouter();
 
   useEffect(() => {
     async function loadProfile() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
       if (!user) {
         router.push('/auth/login');
         return;
@@ -31,33 +28,19 @@ export default function ProfilePage() {
         .eq('id', user.id)
         .single();
 
-      // Get credits data
-      const { data: creditsData } = await supabase
-        .from('credits')
-        .select('credits_remaining')
-        .eq('user_id', user.id)
-        .single();
-
       if (profile) {
         setFirstName(profile.first_name || '');
         setLastName(profile.last_name || '');
       }
 
-      if (creditsData) {
-        setCreditsRemaining(creditsData.credits_remaining);
-      }
-
       setLoading(false);
     }
 
+    initialize();
     loadProfile();
-  }, [supabase, router]);
+  }, [user]);
 
   async function updateProfile() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
     if (!user) return;
 
     await supabase
@@ -72,7 +55,7 @@ export default function ProfilePage() {
     router.refresh();
   }
 
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">Loading...</div>
@@ -113,7 +96,7 @@ export default function ProfilePage() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Available Credits
           </label>
-          <div className="text-2xl font-bold">{creditsRemaining}</div>
+          <div className="text-2xl font-bold">{credits}</div>
         </div>
 
         <button

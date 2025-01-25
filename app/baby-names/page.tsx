@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
-import { getUserCredits, decrementCredits } from '@/lib/credits';
 import { NameGeneratorLayout } from '@/components/name-generator/NameGeneratorLayout';
 import { CreditStatus } from '@/components/name-generator/CreditStatus';
 import { PremiumFeatureOverlay } from '@/components/name-generator/PremiumFeatureOverlay';
 import { NameResults } from '@/components/name-generator/NameResults';
+import { useAuthStore } from '@/lib/store/auth';
 
 export default function BabyNamesPage() {
   const [gender, setGender] = useState<string>('neutral');
@@ -20,20 +20,12 @@ export default function BabyNamesPage() {
   const [popularity, setPopularity] = useState<number>(50);
   const [loading, setLoading] = useState<boolean>(false);
   const [names, setNames] = useState<string[]>([]);
-  const [remainingCredits, setRemainingCredits] = useState<number>(0);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoadingCredits, setIsLoadingCredits] = useState<boolean>(true);
+
+  const { user, credits, isLoading, initialize } = useAuthStore();
 
   useEffect(() => {
-    const fetchCredits = async () => {
-      setIsLoadingCredits(true);
-      const { credits, isAuthenticated: isAuth } = await getUserCredits();
-      setRemainingCredits(credits);
-      setIsAuthenticated(isAuth);
-      setIsLoadingCredits(false);
-    };
-    fetchCredits();
-  }, []);
+    initialize();
+  }, [initialize]);
 
   const getPopularityLabel = (value: number) => {
     if (value === 0) return 'Super Unique 🦄';
@@ -60,8 +52,8 @@ export default function BabyNamesPage() {
   };
 
   const handleGenerate = async () => {
-    if (remainingCredits <= 0) {
-      if (!isAuthenticated) {
+    if (credits <= 0) {
+      if (!user) {
         if (
           confirm(
             'Create an account to get more credits. Would you like to sign up now?'
@@ -98,10 +90,6 @@ export default function BabyNamesPage() {
 
       if (response.ok) {
         setNames(data.names);
-        const success = await decrementCredits();
-        if (success) {
-          setRemainingCredits((prev) => Math.max(0, prev - 1));
-        }
       } else {
         if (response.status === 401) {
           if (
@@ -111,6 +99,10 @@ export default function BabyNamesPage() {
           ) {
             window.location.href = '/auth/signup';
           }
+        } else if (response.status === 403) {
+          alert(
+            'You have no credits remaining. Please purchase more credits to continue.'
+          );
         } else {
           console.error('Failed to generate names:', data.error);
           alert(data.error);
@@ -124,16 +116,15 @@ export default function BabyNamesPage() {
     }
   };
 
-  const showPremiumOverlay =
-    !isLoadingCredits && (!isAuthenticated || remainingCredits < 20);
+  const showPremiumOverlay = !isLoading && (!user || credits < 20);
 
   return (
     <NameGeneratorLayout title="Generate Baby Names">
       <div className="flex justify-end">
         <CreditStatus
-          isLoadingCredits={isLoadingCredits}
-          remainingCredits={remainingCredits}
-          isAuthenticated={isAuthenticated}
+          isLoadingCredits={isLoading}
+          remainingCredits={credits}
+          isAuthenticated={!!user}
         />
       </div>
 
@@ -209,7 +200,7 @@ export default function BabyNamesPage() {
           <h2 className="text-xl font-semibold text-[#333333]">
             Advanced Customization
           </h2>
-          {isLoadingCredits ? (
+          {isLoading ? (
             <div className="space-y-8 opacity-50">
               <div className="space-y-4">
                 <Label htmlFor="style" className="text-lg font-semibold block">

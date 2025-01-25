@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
-import { getUserCredits, decrementCredits } from '@/lib/credits';
 import { NameGeneratorLayout } from '@/components/name-generator/NameGeneratorLayout';
 import { CreditStatus } from '@/components/name-generator/CreditStatus';
 import { PremiumFeatureOverlay } from '@/components/name-generator/PremiumFeatureOverlay';
 import { NameResults } from '@/components/name-generator/NameResults';
+import { useAuthStore } from '@/lib/store/auth';
 
 export default function DnDNamesPage() {
   const [race, setRace] = useState<string>('human');
@@ -21,20 +21,12 @@ export default function DnDNamesPage() {
   const [count, setCount] = useState<number>(5);
   const [loading, setLoading] = useState<boolean>(false);
   const [names, setNames] = useState<string[]>([]);
-  const [remainingCredits, setRemainingCredits] = useState<number>(0);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoadingCredits, setIsLoadingCredits] = useState<boolean>(true);
+
+  const { user, credits, isLoading, initialize } = useAuthStore();
 
   useEffect(() => {
-    const fetchCredits = async () => {
-      setIsLoadingCredits(true);
-      const { credits, isAuthenticated: isAuth } = await getUserCredits();
-      setRemainingCredits(credits);
-      setIsAuthenticated(isAuth);
-      setIsLoadingCredits(false);
-    };
-    fetchCredits();
-  }, []);
+    initialize();
+  }, [initialize]);
 
   const getEpicnessLabel = (value: number) => {
     if (value === 0) return 'Common Folk 🏠';
@@ -45,8 +37,8 @@ export default function DnDNamesPage() {
   };
 
   const handleGenerate = async () => {
-    if (remainingCredits <= 0) {
-      if (!isAuthenticated) {
+    if (credits <= 0) {
+      if (!user) {
         if (
           confirm(
             'Create an account to get more credits. Would you like to sign up now?'
@@ -84,10 +76,6 @@ export default function DnDNamesPage() {
 
       if (response.ok) {
         setNames(data.names);
-        const success = await decrementCredits();
-        if (success) {
-          setRemainingCredits((prev) => Math.max(0, prev - 1));
-        }
       } else {
         if (response.status === 401) {
           if (
@@ -97,6 +85,10 @@ export default function DnDNamesPage() {
           ) {
             window.location.href = '/auth/signup';
           }
+        } else if (response.status === 403) {
+          alert(
+            'You have no credits remaining. Please purchase more credits to continue.'
+          );
         } else {
           console.error('Failed to generate names:', data.error);
           alert(data.error);
@@ -110,17 +102,15 @@ export default function DnDNamesPage() {
     }
   };
 
-  const showPremiumOverlay =
-    !isLoadingCredits && (!isAuthenticated || remainingCredits < 20);
+  const showPremiumOverlay = !isLoading && (!user || credits < 20);
 
   return (
-    <NameGeneratorLayout title="D&D Character Names">
+    <NameGeneratorLayout title="Generate D&D Character Names">
       <div className="flex justify-end">
         <CreditStatus
-          isLoadingCredits={isLoadingCredits}
-          remainingCredits={remainingCredits}
-          isAuthenticated={isAuthenticated}
-          accentColor="#63BCA5"
+          isLoadingCredits={isLoading}
+          remainingCredits={credits}
+          isAuthenticated={!!user}
         />
       </div>
 
@@ -213,113 +203,60 @@ export default function DnDNamesPage() {
           </RadioGroup>
         </div>
 
-        {!showPremiumOverlay ? (
-          <>
-            <div className="space-y-3 sm:space-y-4">
-              <Label className="text-base sm:text-lg font-semibold block">
-                Alignment
-              </Label>
-              <RadioGroup
-                value={alignment}
-                onValueChange={setAlignment}
-                className="flex flex-wrap gap-4 sm:gap-6"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="lawful-good" id="lawful-good" />
-                  <Label htmlFor="lawful-good">Lawful Good</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="neutral-good" id="neutral-good" />
-                  <Label htmlFor="neutral-good">Neutral Good</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="chaotic-good" id="chaotic-good" />
-                  <Label htmlFor="chaotic-good">Chaotic Good</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="lawful-neutral" id="lawful-neutral" />
-                  <Label htmlFor="lawful-neutral">Lawful Neutral</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="neutral" id="neutral" />
-                  <Label htmlFor="neutral">True Neutral</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem
-                    value="chaotic-neutral"
-                    id="chaotic-neutral"
-                  />
-                  <Label htmlFor="chaotic-neutral">Chaotic Neutral</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="lawful-evil" id="lawful-evil" />
-                  <Label htmlFor="lawful-evil">Lawful Evil</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="neutral-evil" id="neutral-evil" />
-                  <Label htmlFor="neutral-evil">Neutral Evil</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="chaotic-evil" id="chaotic-evil" />
-                  <Label htmlFor="chaotic-evil">Chaotic Evil</Label>
-                </div>
-              </RadioGroup>
+        <div className="space-y-3 sm:space-y-4">
+          <Label className="text-base sm:text-lg font-semibold block">
+            Alignment
+          </Label>
+          <RadioGroup
+            value={alignment}
+            onValueChange={setAlignment}
+            className="flex flex-wrap gap-4 sm:gap-6"
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="lawful-good" id="lawful-good" />
+              <Label htmlFor="lawful-good">Lawful Good</Label>
             </div>
-
-            <div className="space-y-3 sm:space-y-4">
-              <Label className="text-base sm:text-lg font-semibold block">
-                Background
-              </Label>
-              <Input
-                type="text"
-                value={background}
-                onChange={(e) => setBackground(e.target.value)}
-                placeholder="Enter character background or theme..."
-                className="max-w-xs"
-              />
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="neutral-good" id="neutral-good" />
+              <Label htmlFor="neutral-good">Neutral Good</Label>
             </div>
-          </>
-        ) : (
-          <PremiumFeatureOverlay message="Unlock advanced character customization with alignment and background options!">
-            <div className="space-y-6 sm:space-y-8 opacity-50">
-              <div className="space-y-3 sm:space-y-4">
-                <Label className="text-base sm:text-lg font-semibold block">
-                  Alignment
-                </Label>
-                <RadioGroup
-                  value={alignment}
-                  onValueChange={setAlignment}
-                  className="flex flex-wrap gap-4 sm:gap-6"
-                  disabled
-                >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="neutral" id="neutral" disabled />
-                    <Label htmlFor="neutral">True Neutral</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-3 sm:space-y-4">
-                <Label className="text-base sm:text-lg font-semibold block">
-                  Background
-                </Label>
-                <Input
-                  type="text"
-                  disabled
-                  placeholder="Enter character background or theme..."
-                  className="max-w-xs"
-                />
-              </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="chaotic-good" id="chaotic-good" />
+              <Label htmlFor="chaotic-good">Chaotic Good</Label>
             </div>
-          </PremiumFeatureOverlay>
-        )}
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="lawful-neutral" id="lawful-neutral" />
+              <Label htmlFor="lawful-neutral">Lawful Neutral</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="neutral" id="neutral" />
+              <Label htmlFor="neutral">True Neutral</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="chaotic-neutral" id="chaotic-neutral" />
+              <Label htmlFor="chaotic-neutral">Chaotic Neutral</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="lawful-evil" id="lawful-evil" />
+              <Label htmlFor="lawful-evil">Lawful Evil</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="neutral-evil" id="neutral-evil" />
+              <Label htmlFor="neutral-evil">Neutral Evil</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="chaotic-evil" id="chaotic-evil" />
+              <Label htmlFor="chaotic-evil">Chaotic Evil</Label>
+            </div>
+          </RadioGroup>
+        </div>
 
         <div className="space-y-3 sm:space-y-4">
           <Label
             htmlFor="epicness"
             className="text-base sm:text-lg font-semibold block"
           >
-            Epicness Level: {getEpicnessLabel(epicness)}
+            Epicness: {getEpicnessLabel(epicness)}
           </Label>
           <Slider
             id="epicness"
@@ -357,11 +294,67 @@ export default function DnDNamesPage() {
           />
         </div>
 
+        <div className="pt-8 border-t space-y-8">
+          <h2 className="text-xl font-semibold text-[#333333]">
+            Advanced Customization
+          </h2>
+          {isLoading ? (
+            <div className="space-y-4 opacity-50">
+              <Label
+                htmlFor="background"
+                className="text-lg font-semibold block"
+              >
+                Character Background
+              </Label>
+              <Input
+                id="background"
+                placeholder="e.g., Noble, Soldier, Scholar"
+                value={background}
+                onChange={(e) => setBackground(e.target.value)}
+                disabled
+              />
+            </div>
+          ) : showPremiumOverlay ? (
+            <PremiumFeatureOverlay message="Unlock advanced character customization with background details!">
+              <div className="space-y-4">
+                <Label
+                  htmlFor="background"
+                  className="text-lg font-semibold block"
+                >
+                  Character Background
+                </Label>
+                <Input
+                  id="background"
+                  placeholder="e.g., Noble, Soldier, Scholar"
+                  value={background}
+                  onChange={(e) => setBackground(e.target.value)}
+                  disabled
+                />
+              </div>
+            </PremiumFeatureOverlay>
+          ) : (
+            <div className="space-y-4">
+              <Label
+                htmlFor="background"
+                className="text-lg font-semibold block"
+              >
+                Character Background
+              </Label>
+              <Input
+                id="background"
+                placeholder="e.g., Noble, Soldier, Scholar"
+                value={background}
+                onChange={(e) => setBackground(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
         <Button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="w-full sm:w-auto bg-[#63BCA5] hover:bg-[#52AB94]"
           type="button"
+          onClick={handleGenerate}
+          className="bg-[#63BCA5] text-white font-inter py-3 px-6 text-lg hover:bg-[#52AB94] transition-colors mt-8"
+          disabled={loading}
         >
           {loading ? 'Generating...' : 'Generate Names'}
         </Button>

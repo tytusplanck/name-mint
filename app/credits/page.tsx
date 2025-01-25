@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import PaymentForm from '../../components/PaymentForm';
+import { useAuthStore } from '@/lib/store/auth';
 
 // Initialize Stripe
 const stripePromise = loadStripe(
@@ -47,37 +47,13 @@ const pricingTiers: PricingTier[] = [
 ];
 
 export default function CreditsPage() {
-  const [isLoadingCredits, setIsLoadingCredits] = useState(true);
-  const [currentCredits, setCurrentCredits] = useState(0);
+  const { user, credits, isLoading, initialize } = useAuthStore();
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [clientSecret, setClientSecret] = useState<string>('');
   const router = useRouter();
-  const supabase = createClientComponentClient();
-
-  async function loadCredits() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
-
-    const { data: creditsData } = await supabase
-      .from('credits')
-      .select('credits_remaining')
-      .eq('user_id', user.id)
-      .single();
-
-    if (creditsData) {
-      setCurrentCredits(creditsData.credits_remaining);
-    }
-    setIsLoadingCredits(false);
-  }
 
   useEffect(() => {
-    loadCredits();
+    initialize();
   }, []);
 
   // Refresh credits when the page gains focus (e.g., returning from success page)
@@ -85,7 +61,7 @@ export default function CreditsPage() {
     function onFocus() {
       // Don't refresh if we're being redirected to the success page
       if (!window.location.pathname.includes('/credits/success')) {
-        loadCredits();
+        initialize();
       }
     }
 
@@ -94,11 +70,7 @@ export default function CreditsPage() {
   }, []);
 
   const handlePurchase = async (tier: PricingTier) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
+    if (!user) {
       router.push('/auth/login');
       return;
     }
@@ -143,7 +115,7 @@ export default function CreditsPage() {
     }
   };
 
-  if (isLoadingCredits) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">Loading...</div>
@@ -159,7 +131,7 @@ export default function CreditsPage() {
           <div className="inline-block bg-white rounded-2xl shadow-md px-8 py-4 mb-6">
             <span className="text-gray-600 text-lg">Current Balance:</span>
             <div className="text-4xl font-bold bg-gradient-to-r from-[#63BCA5] to-[#52AB94] bg-clip-text text-transparent">
-              {currentCredits} credits
+              {credits} credits
             </div>
           </div>
           <p className="text-gray-500">
