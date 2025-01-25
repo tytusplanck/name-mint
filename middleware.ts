@@ -10,7 +10,7 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Only protect the API route
+  // Only protect the API routes
   if (req.nextUrl.pathname.startsWith('/api/generate-names')) {
     // Allow the first 3 calls without authentication
     const freeUsageCount = parseInt(
@@ -24,9 +24,18 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  if (req.nextUrl.pathname.startsWith('/api/create-payment-intent')) {
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Authentication required for payment' },
+        { status: 401 }
+      );
+    }
+  }
+
   return res;
 }
 
 export const config = {
-  matcher: ['/api/generate-names'],
+  matcher: ['/api/generate-names', '/api/create-payment-intent'],
 };

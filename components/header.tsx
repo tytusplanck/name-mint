@@ -4,12 +4,15 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClientComponentClient();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [credits, setCredits] = useState<number>(0);
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true);
 
   useEffect(() => {
     async function checkAuth() {
@@ -17,13 +20,35 @@ export function Header() {
         data: { user },
       } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
+
+      if (user) {
+        const { data: creditsData } = await supabase
+          .from('credits')
+          .select('credits_remaining')
+          .eq('user_id', user.id)
+          .single();
+
+        setCredits(creditsData?.credits_remaining ?? 0);
+      }
+      setIsLoadingCredits(false);
     }
     checkAuth();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setIsLoggedIn(!!session?.user);
+      if (session?.user) {
+        const { data: creditsData } = await supabase
+          .from('credits')
+          .select('credits_remaining')
+          .eq('user_id', session.user.id)
+          .single();
+
+        setCredits(creditsData?.credits_remaining ?? 0);
+      } else {
+        setCredits(0);
+      }
     });
 
     return () => {
@@ -51,6 +76,19 @@ export function Header() {
         <div className="flex items-center space-x-4">
           {isLoggedIn ? (
             <>
+              {!isLoadingCredits && (
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm text-gray-600">
+                    {credits} credits
+                  </span>
+                  <Button
+                    className="bg-gradient-to-r from-[#63BCA5] to-[#52AB94] text-white hover:opacity-90 transition-opacity font-semibold"
+                    onClick={() => router.push('/credits')}
+                  >
+                    Buy Credits
+                  </Button>
+                </div>
+              )}
               <Link
                 href="/profile"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
@@ -65,12 +103,20 @@ export function Header() {
               </button>
             </>
           ) : (
-            <Link
-              href="/auth/login"
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Login
-            </Link>
+            <>
+              <Button
+                className="bg-gradient-to-r from-[#63BCA5] to-[#52AB94] text-white hover:opacity-90 transition-opacity font-semibold"
+                onClick={() => router.push('/auth/signup')}
+              >
+                Get Credits
+              </Button>
+              <Link
+                href="/auth/login"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Login
+              </Link>
+            </>
           )}
         </div>
       </div>
