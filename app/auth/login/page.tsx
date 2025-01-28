@@ -5,14 +5,12 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
   const supabase = createClientComponentClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,8 +28,9 @@ export default function LoginPage() {
       if (signInError) throw signInError;
 
       if (data?.session) {
-        router.refresh();
-        router.push('/');
+        // Force a hard reload instead of client-side navigation
+        // This ensures the auth state is properly initialized
+        window.location.href = '/';
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred');
