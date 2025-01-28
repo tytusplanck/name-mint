@@ -65,17 +65,6 @@ export default function LandingPage() {
           </div>
         </div>
       </main>
-
-      <footer className="fixed bottom-0 w-full border-t bg-white/80 backdrop-blur-sm">
-        <div className="mx-auto max-w-6xl px-4 py-2 sm:px-6 sm:py-3 flex flex-col items-center space-y-0.5 sm:space-y-1">
-          <p className="text-sm sm:text-base font-inter text-gray-600 text-center">
-            AI-Powered Name Generation for Every Occasion
-          </p>
-          <p className="text-sm text-gray-500">
-            &copy; 2025 Nametica. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
