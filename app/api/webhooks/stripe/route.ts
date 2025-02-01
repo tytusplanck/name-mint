@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 
 // Add these export configurations
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
 export const preferredRegion = 'auto';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -25,9 +24,14 @@ export async function POST(req: Request) {
 
   if (!signature) {
     console.error('No stripe-signature header found');
-    return NextResponse.json(
-      { error: 'No signature provided' },
-      { status: 400 }
+    return new NextResponse(
+      JSON.stringify({ error: 'No signature provided' }),
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     );
   }
 
@@ -60,9 +64,14 @@ export async function POST(req: Request) {
             'credits:',
             credits
           );
-          return NextResponse.json(
-            { error: 'Invalid metadata' },
-            { status: 400 }
+          return new NextResponse(
+            JSON.stringify({ error: 'Invalid metadata' }),
+            {
+              status: 400,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
           );
         }
 
@@ -76,34 +85,56 @@ export async function POST(req: Request) {
 
         if (updateError) {
           console.error('Error updating credits:', updateError);
-          return NextResponse.json(
-            { error: 'Error updating credits' },
-            { status: 500 }
+          return new NextResponse(
+            JSON.stringify({ error: 'Error updating credits' }),
+            {
+              status: 500,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
           );
         }
 
         console.log('Successfully updated credits for user:', userId);
-        return NextResponse.json({ success: true });
+        return new NextResponse(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
       }
 
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.error('Payment failed:', paymentIntent.id);
-        // You could implement additional error handling here
-        // For example, sending an email to the user or logging to an error tracking service
-        return NextResponse.json({ success: true });
+        return new NextResponse(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
       }
 
       default:
-        // Unexpected event type
         console.log(`Unhandled event type: ${event.type}`);
-        return NextResponse.json({ success: true });
+        return new NextResponse(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
     }
   } catch (err) {
     console.error('Error processing webhook:', err);
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 400 }
+    return new NextResponse(
+      JSON.stringify({ error: 'Webhook processing failed' }),
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     );
   }
 }
