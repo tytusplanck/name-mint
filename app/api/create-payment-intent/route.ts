@@ -43,6 +43,7 @@ export async function POST(req: Request) {
 
       // Map tier to amount and credits
       const tierMap = {
+        'tier-test': { amount: 50, credits: 2 }, // $0.50
         'tier-1': { amount: 200, credits: 20 }, // $2.00
         'tier-2': { amount: 500, credits: 100 }, // $5.00
         'tier-3': { amount: 1500, credits: 250 }, // $15.00

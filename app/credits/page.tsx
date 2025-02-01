@@ -23,6 +23,13 @@ interface PricingTier {
 
 const pricingTiers: PricingTier[] = [
   {
+    id: 'tier-test',
+    name: '🧪 Test Tier',
+    credits: 2,
+    price: 0.5,
+    description: 'For testing purposes',
+  },
+  {
     id: 'tier-1',
     name: 'Starter',
     credits: 20,
