@@ -67,8 +67,9 @@ export function Header() {
                       {credits} credits
                     </span>
                     <Button
-                      className="bg-gradient-to-r from-[#63BCA5] to-[#52AB94] text-white hover:opacity-90 transition-opacity font-semibold px-6"
+                      className="bg-gradient-to-r from-[#63BCA5] to-[#52AB94] text-white hover:opacity-90 transition-opacity font-semibold px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={() => router.push('/credits')}
+                      disabled={true}
                     >
                       Buy Credits
                     </Button>
@@ -125,11 +126,12 @@ export function Header() {
             {user ? (
               <>
                 <Button
-                  className="w-full bg-gradient-to-r from-[#63BCA5] to-[#52AB94] text-white hover:opacity-90 transition-opacity font-semibold"
+                  className="w-full bg-gradient-to-r from-[#63BCA5] to-[#52AB94] text-white hover:opacity-90 transition-opacity font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => {
                     router.push('/credits');
                     setIsMobileMenuOpen(false);
                   }}
+                  disabled={true}
                 >
                   Buy Credits
                 </Button>
