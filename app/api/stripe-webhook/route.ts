@@ -2,82 +2,104 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { webhookLogger } from './error-logger';
 
 // Add these export configurations
 export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const runtime = 'nodejs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Check for required environment variables
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not set');
+}
+
+if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  throw new Error('STRIPE_WEBHOOK_SECRET is not set');
+}
+
+if (
+  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  !process.env.SUPABASE_SERVICE_ROLE_KEY
+) {
+  throw new Error('Supabase environment variables are not set properly');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-12-18.acacia',
+  // Recommended for production environments
+  maxNetworkRetries: 3,
 });
 
 // Initialize Supabase client (we use direct client here as this is a webhook)
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Helper function to create consistent response format
+const createResponse = (data: object, status: number = 200) => {
+  return new NextResponse(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
 
 // Only export the POST method to restrict to POST requests
 export async function POST(req: Request) {
-  console.log('Received webhook event at new endpoint');
-  const body = await req.text();
-  const signature = headers().get('stripe-signature');
-
-  if (!signature) {
-    console.error('No stripe-signature header found');
-    return new NextResponse(
-      JSON.stringify({ error: 'No signature provided' }),
-      {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  }
+  webhookLogger.info('Received webhook event');
 
   try {
-    console.log('Constructing Stripe event with signature:', signature);
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    const body = await req.text();
+    const signature = headers().get('stripe-signature');
 
-    console.log('Received Stripe event type:', event.type);
+    if (!signature) {
+      webhookLogger.error('Missing stripe-signature header');
+      return createResponse({ error: 'No signature provided' }, 400);
+    }
 
+    // Construct the event
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET!
+      );
+    } catch (error) {
+      webhookLogger.error(
+        `Webhook signature verification failed`,
+        error as Error,
+        { signature }
+      );
+      return createResponse({ error: 'Invalid signature' }, 400);
+    }
+
+    webhookLogger.info(`Processing event`, { type: event.type, id: event.id });
+
+    // Handle the event
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.log('Processing successful payment:', paymentIntent.id);
+        webhookLogger.info(`Processing payment`, {
+          paymentIntentId: paymentIntent.id,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+        });
 
         const userId = paymentIntent.metadata.userId;
-        const credits = parseInt(paymentIntent.metadata.credits);
+        const credits = parseInt(paymentIntent.metadata.credits || '0');
 
-        console.log('Payment metadata - userId:', userId, 'credits:', credits);
-
-        if (!userId || isNaN(credits)) {
-          console.error(
-            'Invalid metadata in payment intent:',
-            paymentIntent.id,
-            'userId:',
+        if (!userId || isNaN(credits) || credits <= 0) {
+          webhookLogger.error(`Invalid payment metadata`, undefined, {
+            paymentIntentId: paymentIntent.id,
             userId,
-            'credits:',
-            credits
-          );
-          return new NextResponse(
-            JSON.stringify({ error: 'Invalid metadata' }),
-            {
-              status: 400,
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            }
-          );
+            credits,
+          });
+          return createResponse({ error: 'Invalid metadata' }, 400);
         }
 
-        console.log('Updating credits for user:', userId, 'amount:', credits);
+        webhookLogger.info(`Updating credits`, { userId, credits });
 
         // Update user credits using the service role client
         const { error: updateError } = await supabase.rpc('increment_credits', {
@@ -86,57 +108,47 @@ export async function POST(req: Request) {
         });
 
         if (updateError) {
-          console.error('Error updating credits:', updateError);
-          return new NextResponse(
-            JSON.stringify({ error: 'Error updating credits' }),
-            {
-              status: 500,
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            }
+          webhookLogger.error(
+            `Failed to update credits`,
+            updateError as Error,
+            { userId, credits }
           );
+          return createResponse({ error: 'Error updating credits' }, 500);
         }
 
-        console.log('Successfully updated credits for user:', userId);
-        return new NextResponse(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        webhookLogger.info(`Credits updated successfully`, { userId, credits });
+        return createResponse({ success: true });
       }
 
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.error('Payment failed:', paymentIntent.id);
-        return new NextResponse(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        const failureMessage =
+          paymentIntent.last_payment_error?.message || 'Unknown failure reason';
+
+        webhookLogger.warn(`Payment failed`, {
+          paymentIntentId: paymentIntent.id,
+          failureMessage,
+          userId: paymentIntent.metadata.userId,
         });
+
+        // You could implement additional logic here, like notifying the user
+        return createResponse({ success: true });
       }
 
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
-        return new NextResponse(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
+      case 'charge.succeeded':
+      case 'charge.updated':
+        // We handle these events but don't need to take any action
+        webhookLogger.info(`Processed event without action`, {
+          type: event.type,
         });
+        return createResponse({ success: true });
+
+      default:
+        webhookLogger.info(`Unhandled event type`, { type: event.type });
+        return createResponse({ success: true });
     }
   } catch (err) {
-    console.error('Error processing webhook:', err);
-    return new NextResponse(
-      JSON.stringify({ error: 'Webhook processing failed' }),
-      {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    webhookLogger.error(`Unexpected webhook processing error`, err as Error);
+    return createResponse({ error: 'Webhook processing failed' }, 500);
   }
 }
